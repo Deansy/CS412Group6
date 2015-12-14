@@ -1,7 +1,13 @@
 package lucene;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.core.StopAnalyzer;
+import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.standard.StandardFilter;
+import org.apache.lucene.analysis.standard.StandardTokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -12,7 +18,10 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.tartarus.snowball.ext.PorterStemmer;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +45,7 @@ public class Searcher {
     Searcher(String indexDir) {
     }
 
-    public static List<Document> search(String query, int maxHits) {
+    public static List<Document> search(String query, int maxHits, String filter) {
 
         String indexDir = "./index";
 
@@ -44,8 +53,21 @@ public class Searcher {
             Analyzer analyzer = new StandardAnalyzer();
             Directory index = FSDirectory.open(Paths.get(indexDir));
 
+            // Remove stop words
+            String newQuery = stopAndStem(query);
+            System.out.println("New Query: " + newQuery);
 
-            Query q = new QueryParser("header", analyzer).parse(query);
+            Query q = null;
+
+            switch (filter) {
+                case "Contents":
+                case "":
+                    q = new QueryParser("contents", analyzer).parse(newQuery);
+                    break;
+                case "Headers" :
+                    q = new QueryParser("header", analyzer).parse(newQuery);
+                    break;
+            }
 
             IndexReader reader = DirectoryReader.open(index);
             IndexSearcher searcher = new IndexSearcher(reader);
@@ -53,7 +75,6 @@ public class Searcher {
             TopScoreDocCollector collector = TopScoreDocCollector.create(maxHits);
             searcher.search(q, collector);
             ScoreDoc[] hits = collector.topDocs().scoreDocs;
-
 
             List<Document> results = new ArrayList<>();
 
@@ -65,7 +86,6 @@ public class Searcher {
                 results.add(d);
 
             }
-
             return results;
         }
         catch (Exception e) {
@@ -73,5 +93,39 @@ public class Searcher {
         }
 
         return new ArrayList<>();
+    }
+
+    private static String stopAndStem(String q) {
+        Tokenizer tokenizer = new StandardTokenizer();
+        StringBuilder sb = new StringBuilder();
+        try {
+            tokenizer.setReader(new StringReader(q));
+            StandardFilter standardFilter = new StandardFilter(tokenizer);
+            StopFilter stopFilter = new StopFilter(standardFilter, StopAnalyzer.ENGLISH_STOP_WORDS_SET);
+            CharTermAttribute charTermAttribute = tokenizer.addAttribute(CharTermAttribute.class);
+
+            PorterStemmer stemmer = new PorterStemmer();
+
+            stopFilter.reset();
+
+            // Stem every non- stopped word
+            while(stopFilter.incrementToken()) {
+                String token = charTermAttribute.toString().toString();
+                stemmer.setCurrent(token);
+                stemmer.stem();
+                String stemmed = stemmer.getCurrent();
+
+                if (sb.length() > 0)
+                {
+                    sb.append(" ");
+                }
+                sb.append(stemmed);
+            }
+
+        } catch (IOException e) {
+            System.err.println("Error removing stop words");
+        }
+
+        return sb.toString();
     }
 }

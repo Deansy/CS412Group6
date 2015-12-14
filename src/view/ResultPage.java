@@ -6,9 +6,9 @@ import javafx.concurrent.Worker;
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;
 import javafx.scene.control.TextField;
-import javafx.scene.input.TouchPoint;
 import javafx.scene.layout.Region;
 import javafx.scene.web.WebView;
+
 import java.io.File;
 import java.net.MalformedURLException;
 
@@ -75,7 +75,6 @@ class ResultPage extends Region {
             System.out.println("Can't go forward");
         }
     }
-
 
     @Override protected void layoutChildren() {
         double w = getWidth();
