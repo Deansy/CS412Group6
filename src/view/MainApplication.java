@@ -25,7 +25,7 @@ import java.util.List;
 public class MainApplication extends Application {
 
     private ObservableList<String> filters = FXCollections.observableArrayList("Contents",
-            "Headers");
+            "Headers", "Chapters");
     private String filter = "";
     private ObservableList<Document> results = FXCollections.observableArrayList();
     private ListView resultsPanel = new ListView();

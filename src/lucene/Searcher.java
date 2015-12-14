@@ -61,11 +61,13 @@ public class Searcher {
 
             switch (filter) {
                 case "Contents":
-                case "":
                     q = new QueryParser("contents", analyzer).parse(newQuery);
                     break;
                 case "Headers" :
                     q = new QueryParser("header", analyzer).parse(newQuery);
+                    break;
+                case "Chapters":
+                    q = new QueryParser("chapter",analyzer).parse(newQuery);
                     break;
             }
 
