@@ -13,6 +13,7 @@ import javafx.stage.Stage;
 import javafx.util.Callback;
 import lucene.Searcher;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexableField;
 
 import java.io.File;
 import java.util.List;
@@ -170,8 +171,14 @@ public class MainApplication extends Application {
                             public void updateItem(Document item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null) {
-                                    leadLbl.setText(item.get("header"));
-                                    setText(item.get("header"));
+                                    if (filter.equals("Chapters")) {
+                                        leadLbl.setText("[" + item.get("chapter") + "]" + item.get("header"));
+                                        setText("(" + item.get("chapter") + ")" + item.get("header"));
+                                    }
+                                    else {
+                                        leadLbl.setText(item.get("header"));
+                                        setText(item.get("header"));
+                                    }
                                     tooltip.setText(item.get("path"));
                                     setTooltip(tooltip);
                                 }
@@ -201,7 +208,18 @@ public class MainApplication extends Application {
 
                         // Fill results with test data
                         for (int i = 1; i < searchResults.size(); i++) {
-                            results.add(searchResults.get(i));
+                            try {
+                                IndexableField headerField = searchResults.get(i).getField("header");
+                                if (headerField == null) {
+                                    // Don't add if the header is null
+                                    // This stops empty entrys in the list
+                                } else {
+                                    results.add(searchResults.get(i));
+                                }
+                            }
+                            catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         }
                         resultsPanel.setItems(results);
 
