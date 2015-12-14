@@ -1,5 +1,7 @@
 package lucene;
 
+
+
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -14,6 +16,8 @@ import org.jsoup.select.Elements;
 
 import java.io.*;
 import java.nio.file.Paths;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class Indexer {
@@ -91,9 +95,20 @@ public class Indexer {
 
 
 
+                    Pattern p = Pattern.compile("\\[([^]]+)\\]");
+                    Matcher m = p.matcher(parsedContent.title());
+
+                    String chapter = " ";
+
+                    while(m.find()) {
+                        chapter = m.group(1);
+                    }
 
 
-                    // TODO: Determine the chapter and index it
+                    if (!chapter.equals(" ")) {
+                        doc.add(new Field("chapter", chapter, Field.Store.YES, Field.Index.ANALYZED));
+                    }
+
 
                     if (!headerElements.isEmpty()) {
                         for (Element e : headerElements) {
