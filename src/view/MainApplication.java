@@ -5,16 +5,10 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-
-import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
-
 import javafx.stage.Stage;
 import javafx.util.Callback;
 import lucene.Searcher;
@@ -30,6 +24,9 @@ import java.util.List;
 
 public class MainApplication extends Application {
 
+    private ObservableList<String> filters = FXCollections.observableArrayList("Contents",
+            "Headers");
+    private String filter = "";
     private ObservableList<Document> results = FXCollections.observableArrayList();
     private ListView resultsPanel = new ListView();
     private TreeView<String> treeView;
@@ -39,9 +36,6 @@ public class MainApplication extends Application {
 
     TextField pageId;
 
-
-
-
     public static void main(String[] args) {
         launch(args);
     }
@@ -50,18 +44,29 @@ public class MainApplication extends Application {
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Java Docs - CS412 Group 6");
 
+
         TextField searchBar = new TextField();
         searchBar.setPromptText("Search");
 
-        // Listen to the search bar ** EVENT HANDLING **
+        ComboBox filterBar = new ComboBox(filters);
+        filterBar.setMinWidth(250);
+        filterBar.setMinHeight(30);
+        filterBar.valueProperty().setValue("Contents");
+        filterBar.valueProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue ov, String t, String t1) {
+                filter = t1;
+            }
+        });
 
+        // Listen to the search bar
         setChangeListener(searchBar);
         setCellFactory();
         setSelectedItemListener();
 
 
         // Set up results panel
-        resultsPanel.setMinHeight(653);
+        resultsPanel.setMinHeight(620);
 
         resultsPanel.setItems( results );
 
@@ -73,7 +78,7 @@ public class MainApplication extends Application {
 
         // :MAIN: Main Windows
         BorderPane mainLayout = new BorderPane();
-        mainLayout.setPadding(new Insets(5,10,10,10));
+        mainLayout.setPadding(new Insets(5, 10, 10, 10));
 
         // :LEFT: Search | Browse
         TabPane tabPane = new TabPane();
@@ -91,17 +96,16 @@ public class MainApplication extends Application {
 
         // Set up browser to show java doc contents
         /* MISSING CODE */
-        treeView=new TreeView<>();
+        treeView = new TreeView<>();
         browsePane.getChildren().add(treeView);
         VBox.setVgrow(treeView, Priority.ALWAYS);
-
 
 
         // Search and Results
         VBox searchPane = new VBox();
         searchPane.setPadding(new Insets(5, 0, 0, 0));
         searchPane.setSpacing(2);
-        searchPane.getChildren().addAll(searchBar,resultsPanel);
+        searchPane.getChildren().addAll(filterBar, searchBar, resultsPanel);
         searchTab.setContent(searchPane);
         browseTab.setContent(browsePane);
 
@@ -109,11 +113,11 @@ public class MainApplication extends Application {
         Pane selectedResult = new Pane();
         resultPage = new ResultPage();
         selectedResult.getChildren().add(resultPage);
-        selectedResult.setPadding(new Insets(10,10,10,10));
+        selectedResult.setPadding(new Insets(10, 10, 10, 10));
 
         // :TOP: Navigation Bar
         HBox navBar = new HBox();
-        navBar.setPadding(new Insets(0,0,10,0));
+        navBar.setPadding(new Insets(0, 0, 10, 0));
         navBar.setSpacing(10);
 
         // EVENT HANDLING...
@@ -121,8 +125,6 @@ public class MainApplication extends Application {
         backBtn.setOnAction(e -> resultPage.goBack());
         Button forwardBtn = new Button("\u21e8");
         forwardBtn.setOnAction(e -> resultPage.goForward());
-
-
 
 
         navBar.getChildren().addAll(backBtn, forwardBtn, pageId);
@@ -146,7 +148,7 @@ public class MainApplication extends Application {
                 .addListener(new ChangeListener() {
                     @Override
                     public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                        Document d = (Document)newValue;
+                        Document d = (Document) newValue;
                         resultPage.loadPage(new File(d.get("path")), pageId);
 
                         pageId.setText(d.get("path"));
@@ -180,33 +182,31 @@ public class MainApplication extends Application {
                 }); // setCellFactory
     }
 
-
     private void setChangeListener(TextField searchBar) {
         searchBar.textProperty().addListener(
                 new ChangeListener() {
                     public void changed(ObservableValue observable, Object oldVal, Object newVal) {
 
-                        if ( oldVal != null && (((String) newVal).length() < ((String) oldVal).length()) ) {
-                            System.out.println("Deleting - Just do previous search");
-                        } else {
+//                        if ( oldVal != null && (((String) newVal).length() < ((String) oldVal).length()) ) {
+//                            System.out.println("Deleting - Just do previous search");
+//                        } else {
 
-                            // CALL SEARCH HERE
-                            System.out.println("Searching for: " + (String)newVal);
-                            resultPage.loadPage(new File((String)newVal), pageId);
+//                            System.out.println("Searching for: " + (String)newVal);
+                        resultPage.loadPage(new File((String) newVal), pageId);
 
-                            searchResults = Searcher.search((String)newVal, 50);
+                        searchResults = Searcher.search((String) newVal, 50, filter);
 
 
-                            results.clear();
+                        results.clear();
 
-                            // Fill results with test data
-                            for ( int i = 1; i < searchResults.size(); i++ ) {
-                                results.add(searchResults.get(i));
-                            }
-                            resultsPanel.setItems( results );
-
+                        // Fill results with test data
+                        for (int i = 1; i < searchResults.size(); i++) {
+                            results.add(searchResults.get(i));
                         }
+                        resultsPanel.setItems(results);
+
                     }
+//                    }
                 });
     }
 
