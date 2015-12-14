@@ -31,7 +31,13 @@ class ResultPage extends Region {
                     new ChangeListener<Worker.State>() {
                         @Override
                         public void changed(ObservableValue<? extends Worker.State> observable, Worker.State oldValue, Worker.State newValue) {
-                            pageID.setText(browser.getEngine().getTitle());
+                            try {
+                                if (pageID != null) {
+                                    pageID.setText(browser.getEngine().getTitle());
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
             );
