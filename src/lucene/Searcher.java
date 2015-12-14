@@ -69,6 +69,10 @@ public class Searcher {
                 case "Chapters":
                     q = new QueryParser("chapter",analyzer).parse(newQuery);
                     break;
+                default:
+                    // Default to searching contents
+                    q = new QueryParser("contents", analyzer).parse(newQuery);
+                    break;
             }
 
             IndexReader reader = DirectoryReader.open(index);
