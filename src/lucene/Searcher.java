@@ -8,9 +8,11 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.standard.StandardFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -24,6 +26,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -31,12 +34,10 @@ import java.util.List;
  */
 public class Searcher {
 
-    public static void main(String [] args)
-    {
+    public static void main(String[] args) {
         try {
             Searcher searcher = new Searcher("./index");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -57,48 +58,57 @@ public class Searcher {
             String newQuery = stopAndStem(query);
             System.out.println("New Query: " + newQuery);
 
+            //String newQuery = query;
+
             // Don't allow an empty search
             if (newQuery.length() >= 1) {
 
                 Query q = null;
 
-                switch (filter) {
-                    case "Contents":
-                        q = new QueryParser("contents", analyzer).parse(newQuery);
-                        break;
-                    case "Headers":
-                        q = new QueryParser("header", analyzer).parse(newQuery);
-                        break;
-                    case "Chapters":
-                        q = new QueryParser("chapter", analyzer).parse(newQuery);
-                        break;
-                    default:
-                        // Default to searching contents
-                        q = new QueryParser("contents", analyzer).parse(newQuery);
-                        break;
+                try {
+
+                    switch (filter) {
+
+                        case "Contents":
+                            q = new QueryParser("contents", analyzer).parse(newQuery);
+                            break;
+                        case "Headers":
+                            q = new QueryParser("header", analyzer).parse(newQuery);
+                            break;
+                        case "Chapters":
+                            q = new QueryParser("chapter", analyzer).parse(newQuery);
+                            break;
+                        default:
+                            // Default to searching contents
+                            q = new QueryParser("contents", analyzer).parse(newQuery);
+                            break;
+                    }
+
+
+                    IndexReader reader = DirectoryReader.open(index);
+                    IndexSearcher searcher = new IndexSearcher(reader);
+
+                    TopScoreDocCollector collector = TopScoreDocCollector.create(maxHits);
+                    searcher.search(q, collector);
+                    ScoreDoc[] hits = collector.topDocs().scoreDocs;
+
+                    List<Document> results = new ArrayList<>();
+
+                    System.out.println("Found " + hits.length + " hits.");
+                    for (int i = 0; i < hits.length; ++i) {
+                        int docId = hits[i].doc;
+                        Document d = searcher.doc(docId);
+
+                        results.add(d);
+
+                    }
+                    return results;
+                } catch (ParseException e) {
+                    System.out.println("Don't have enough search parameters");
+
                 }
-
-                IndexReader reader = DirectoryReader.open(index);
-                IndexSearcher searcher = new IndexSearcher(reader);
-
-                TopScoreDocCollector collector = TopScoreDocCollector.create(maxHits);
-                searcher.search(q, collector);
-                ScoreDoc[] hits = collector.topDocs().scoreDocs;
-
-                List<Document> results = new ArrayList<>();
-
-                System.out.println("Found " + hits.length + " hits.");
-                for (int i = 0; i < hits.length; ++i) {
-                    int docId = hits[i].doc;
-                    Document d = searcher.doc(docId);
-
-                    results.add(d);
-
-                }
-                return results;
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -111,7 +121,11 @@ public class Searcher {
         try {
             tokenizer.setReader(new StringReader(q));
             StandardFilter standardFilter = new StandardFilter(tokenizer);
-            StopFilter stopFilter = new StopFilter(standardFilter, StopAnalyzer.ENGLISH_STOP_WORDS_SET);
+
+            List customStopWords = Arrays.asList(new String[]{"a", "an", "are", "as", "at", "be", "but", "by", "for", "in", "into", "is", "it", "no", "not", "of", "on", "such", "that", "the", "their", "then", "there", "these", "they", "this", "to", "was", "will", "with"});
+            CharArraySet stopSet = new CharArraySet(customStopWords, false);
+
+            StopFilter stopFilter = new StopFilter(standardFilter, stopSet);
             CharTermAttribute charTermAttribute = tokenizer.addAttribute(CharTermAttribute.class);
 
             PorterStemmer stemmer = new PorterStemmer();
@@ -119,14 +133,13 @@ public class Searcher {
             stopFilter.reset();
 
             // Stem every non- stopped word
-            while(stopFilter.incrementToken()) {
+            while (stopFilter.incrementToken()) {
                 String token = charTermAttribute.toString().toString();
                 stemmer.setCurrent(token);
                 stemmer.stem();
                 String stemmed = stemmer.getCurrent();
 
-                if (sb.length() > 0)
-                {
+                if (sb.length() > 0) {
                     sb.append(" ");
                 }
                 sb.append(stemmed);

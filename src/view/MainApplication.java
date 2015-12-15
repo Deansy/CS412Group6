@@ -26,7 +26,7 @@ import java.util.List;
 public class MainApplication extends Application {
 
     private ObservableList<String> filters = FXCollections.observableArrayList("Contents",
-            "Headers", "Chapters");
+            "Headers", "Chapter");
     private String filter = "";
     private ObservableList<Document> results = FXCollections.observableArrayList();
     private ListView resultsPanel = new ListView();
@@ -182,7 +182,7 @@ public class MainApplication extends Application {
                             public void updateItem(Document item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null) {
-                                    if (filter.equals("Chapters")) {
+                                    if (filter.equals("Chapter")) {
                                         leadLbl.setText("[" + item.get("chapter") + "]" + item.get("header"));
                                         setText("(" + item.get("chapter") + ")" + item.get("header"));
                                     }
