@@ -57,42 +57,46 @@ public class Searcher {
             String newQuery = stopAndStem(query);
             System.out.println("New Query: " + newQuery);
 
-            Query q = null;
+            // Don't allow an empty search
+            if (newQuery.length() >= 1) {
 
-            switch (filter) {
-                case "Contents":
-                    q = new QueryParser("contents", analyzer).parse(newQuery);
-                    break;
-                case "Headers" :
-                    q = new QueryParser("header", analyzer).parse(newQuery);
-                    break;
-                case "Chapters":
-                    q = new QueryParser("chapter",analyzer).parse(newQuery);
-                    break;
-                default:
-                    // Default to searching contents
-                    q = new QueryParser("contents", analyzer).parse(newQuery);
-                    break;
+                Query q = null;
+
+                switch (filter) {
+                    case "Contents":
+                        q = new QueryParser("contents", analyzer).parse(newQuery);
+                        break;
+                    case "Headers":
+                        q = new QueryParser("header", analyzer).parse(newQuery);
+                        break;
+                    case "Chapters":
+                        q = new QueryParser("chapter", analyzer).parse(newQuery);
+                        break;
+                    default:
+                        // Default to searching contents
+                        q = new QueryParser("contents", analyzer).parse(newQuery);
+                        break;
+                }
+
+                IndexReader reader = DirectoryReader.open(index);
+                IndexSearcher searcher = new IndexSearcher(reader);
+
+                TopScoreDocCollector collector = TopScoreDocCollector.create(maxHits);
+                searcher.search(q, collector);
+                ScoreDoc[] hits = collector.topDocs().scoreDocs;
+
+                List<Document> results = new ArrayList<>();
+
+                System.out.println("Found " + hits.length + " hits.");
+                for (int i = 0; i < hits.length; ++i) {
+                    int docId = hits[i].doc;
+                    Document d = searcher.doc(docId);
+
+                    results.add(d);
+
+                }
+                return results;
             }
-
-            IndexReader reader = DirectoryReader.open(index);
-            IndexSearcher searcher = new IndexSearcher(reader);
-
-            TopScoreDocCollector collector = TopScoreDocCollector.create(maxHits);
-            searcher.search(q, collector);
-            ScoreDoc[] hits = collector.topDocs().scoreDocs;
-
-            List<Document> results = new ArrayList<>();
-
-            System.out.println("Found " + hits.length + " hits.");
-            for(int i=0;i<hits.length;++i) {
-                int docId = hits[i].doc;
-                Document d = searcher.doc(docId);
-
-                results.add(d);
-
-            }
-            return results;
         }
         catch (Exception e) {
             e.printStackTrace();
