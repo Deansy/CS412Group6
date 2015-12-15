@@ -136,7 +136,7 @@ public class Searcher {
             while (stopFilter.incrementToken()) {
                 String token = charTermAttribute.toString().toString();
                 stemmer.setCurrent(token);
-                stemmer.stem();
+                //stemmer.stem();
                 String stemmed = stemmer.getCurrent();
 
                 if (sb.length() > 0) {
