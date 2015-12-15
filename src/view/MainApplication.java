@@ -16,6 +16,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexableField;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -186,9 +187,13 @@ public class MainApplication extends Application {
                                         leadLbl.setText("[" + item.get("chapter") + "]" + item.get("header"));
                                         setText("(" + item.get("chapter") + ")" + item.get("header"));
                                     }
-                                    else {
+                                    else if (filter.equals("Headers")) {
                                         leadLbl.setText(item.get("header"));
                                         setText(item.get("header"));
+                                    }
+                                    else {
+                                        leadLbl.setText(item.get("title"));
+                                        setText(item.get("title"));
                                     }
                                     tooltip.setText(item.get("path"));
                                     setTooltip(tooltip);
@@ -217,15 +222,26 @@ public class MainApplication extends Application {
 
                         results.clear();
 
+                        // Hold a list of paths currently in the results
+                        // This is to stop duplicates
+                        List<String> paths = new ArrayList<String>();
+
                         // Fill results with test data
                         for (int i = 1; i < searchResults.size(); i++) {
                             try {
+                                IndexableField pathField = searchResults.get(i).getField("path");
                                 IndexableField headerField = searchResults.get(i).getField("header");
-                                if (headerField == null) {
-                                    // Don't add if the header is null
-                                    // This stops empty entrys in the list
-                                } else {
-                                    results.add(searchResults.get(i));
+
+                                // Don't add duplicates
+                                if (!paths.contains(pathField.stringValue())) {
+                                    paths.add(pathField.stringValue());
+
+                                    if (headerField == null) {
+                                        // Don't add if the header is null
+                                        // This stops empty entrys in the list
+                                    } else {
+                                        results.add(searchResults.get(i));
+                                    }
                                 }
                             }
                             catch (Exception e) {

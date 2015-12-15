@@ -96,6 +96,7 @@ public class Indexer {
 //                    }
 
 
+                    doc.add(new Field("title", parsedContent.title(), Field.Store.YES, Field.Index.ANALYZED));
 
 
                     Pattern p = Pattern.compile("\\[([^]]+)\\]");
