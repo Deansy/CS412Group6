@@ -52,11 +52,20 @@ public class Searcher {
             Analyzer analyzer = new StandardAnalyzer();
             Directory index = FSDirectory.open(Paths.get(indexDir));
 
-            // Remove stop words
-            String newQuery = stopAndStem(query);
+            String newQuery = "";
+
+            // Allows a direct quote
+            if (query.startsWith("\"") && query.endsWith("\"")) {
+                // Don't stop and stem a quote
+                newQuery = query;
+            }
+            else {
+                newQuery = stopAndStem(query);
+            }
+
+
             System.out.println("New Query: " + newQuery);
 
-            //String newQuery = query;
 
             // Don't allow an empty search
             if (newQuery.length() >= 1) {
