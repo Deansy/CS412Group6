@@ -149,10 +149,21 @@ public class MainApplication extends Application {
                 .addListener(new ChangeListener() {
                     @Override
                     public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                        Document d = (Document) newValue;
-                        resultPage.loadPage(new File(d.get("path")), pageId);
+                        // Stops an exception when changing search types
+                        if (newValue != null) {
+                            try {
+                                Document d = (Document) newValue;
+                                resultPage.loadPage(new File(d.get("path")), pageId);
 
-                        pageId.setText(d.get("path"));
+                                pageId.setText(d.get("path"));
+                            } catch (NullPointerException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        else {
+                            // Do nothing
+                            System.out.println("XX");
+                        }
 
                     }
                 });
