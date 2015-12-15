@@ -125,7 +125,11 @@ public class Indexer {
                                 }
                                 else {
                                     // Index each header into the document
-                                    doc.add(new Field("header", e.text(), Field.Store.YES, Field.Index.ANALYZED));
+
+                                    Field headerField = new Field("header", e.text(), Field.Store.YES, Field.Index.ANALYZED);
+                                    headerField.setBoost(0.5f);
+
+                                    doc.add(headerField);
                                 }
                             }
                         }

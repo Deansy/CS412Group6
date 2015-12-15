@@ -27,8 +27,8 @@ import java.util.List;
 public class MainApplication extends Application {
 
     private ObservableList<String> filters = FXCollections.observableArrayList("Contents",
-            "Headers", "Chapter");
-    private String filter = "";
+            "Headers", "Chapter", "All");
+    private String filter = filters.get(0);
     private ObservableList<Document> results = FXCollections.observableArrayList();
     private ListView resultsPanel = new ListView();
     private TreeView<String> treeView;
@@ -53,7 +53,7 @@ public class MainApplication extends Application {
         ComboBox filterBar = new ComboBox(filters);
         filterBar.setMinWidth(250);
         filterBar.setMinHeight(30);
-        filterBar.valueProperty().setValue("Contents");
+        filterBar.valueProperty().setValue(filters.get(0));
         filterBar.valueProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue ov, String t, String t1) {
@@ -217,7 +217,7 @@ public class MainApplication extends Application {
 //                            System.out.println("Searching for: " + (String)newVal);
                         resultPage.loadPage(new File((String) newVal), pageId);
 
-                        searchResults = Searcher.search((String) newVal, 50, filter);
+                        searchResults = Searcher.search((String) newVal, 20, filter);
 
 
                         results.clear();

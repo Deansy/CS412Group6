@@ -12,12 +12,10 @@ import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopScoreDocCollector;
+import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.tartarus.snowball.ext.PorterStemmer;
@@ -67,21 +65,31 @@ public class Searcher {
 
                 try {
 
-                    switch (filter) {
+                    if (filter.equals("All")) {
 
-                        case "Contents":
-                            q = new QueryParser("contents", analyzer).parse(newQuery);
-                            break;
-                        case "Headers":
-                            q = new QueryParser("header", analyzer).parse(newQuery);
-                            break;
-                        case "Chapters":
-                            q = new QueryParser("chapter", analyzer).parse(newQuery);
-                            break;
-                        default:
-                            // Default to searching contents
-                            q = new QueryParser("contents", analyzer).parse(newQuery);
-                            break;
+                        q = new MultiFieldQueryParser(
+                                new String[] {"header", "contents"},
+                                analyzer).parse(newQuery);
+                    }
+                    else {
+
+                        switch (filter) {
+
+                            case "Contents":
+                                q = new QueryParser("contents", analyzer).parse(newQuery);
+                                break;
+                            case "Headers":
+                                q = new QueryParser("header", analyzer).parse(newQuery);
+                                break;
+                            case "Chapter":
+                                q = new QueryParser("chapter", analyzer).parse(newQuery);
+                                break;
+                            default:
+                                // Default to searching contents
+                                System.err.println("default searching");
+                                q = new QueryParser("contents", analyzer).parse(newQuery);
+                                break;
+                        }
                     }
 
 
@@ -89,12 +97,17 @@ public class Searcher {
                     IndexSearcher searcher = new IndexSearcher(reader);
 
                     TopScoreDocCollector collector = TopScoreDocCollector.create(maxHits);
+
                     searcher.search(q, collector);
+
                     ScoreDoc[] hits = collector.topDocs().scoreDocs;
 
                     List<Document> results = new ArrayList<>();
 
-                    System.out.println("Found " + hits.length + " hits.");
+                    System.out.println("Found " + hits.length + " hits.\n");
+                    if (hits.length > 0) {
+                        System.out.println("Highest score = " + hits[0].score);
+                    }
                     for (int i = 0; i < hits.length; ++i) {
                         int docId = hits[i].doc;
                         Document d = searcher.doc(docId);
