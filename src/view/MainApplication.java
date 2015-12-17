@@ -1,5 +1,6 @@
 package view;
 
+import com.sun.org.apache.xpath.internal.SourceTree;
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -13,6 +14,7 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.Callback;
+import lucene.Indexer;
 import lucene.Searcher;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexableField;
@@ -44,7 +46,21 @@ public class MainApplication extends Application {
     TextField pageId;
 
     public static void main(String[] args) {
-        launch(args);
+        String dataDir = "./DATA";
+        String indexDir = "./index";
+
+        File data = new File(dataDir);
+        File index = new File(indexDir);
+
+        if (data.exists()) {
+            if (!index.exists()) {
+                Indexer.main(args);
+            }
+
+            launch(args);
+        } else {
+            System.out.println("Need a DATA folder to index...");
+        }
     }
 
     @Override
@@ -236,7 +252,7 @@ public class MainApplication extends Application {
 //                        resultPage.loadPage(new File((String) newVal), pageId);
 
                         // Call the search
-                        searchResults = Searcher.search((String) newVal, 20, filter);
+                        searchResults = Searcher.search((String) newVal, 1000, filter);
 
                         // Clear old results
                         results.clear();
@@ -246,10 +262,15 @@ public class MainApplication extends Application {
                         List<String> paths = new ArrayList<String>();
 
                         // Fill results
-                        for (int i = 0; i < searchResults.size()-1; i++) {
+                        for (int i = 1; i < searchResults.size(); i++) {
                             try {
+
                                 IndexableField pathField = searchResults.get(i).getField("path");
                                 IndexableField headerField = searchResults.get(i).getField("header");
+
+//                                System.out.println(pathField.stringValue());
+
+
 
                                 // Don't add duplicates
                                 if (!paths.contains(pathField.stringValue())) {
