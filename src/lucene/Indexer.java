@@ -6,6 +6,9 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
@@ -33,8 +36,8 @@ public class Indexer {
         catch (Exception e) {
             e.printStackTrace();
         }
-
     }
+
     public Indexer(String indexDir) throws IOException {
 
         Analyzer analyzer = new StandardAnalyzer();
@@ -46,10 +49,7 @@ public class Indexer {
 
         indexWebPageDirectory(w, new File("./DATA/"));
         w.close();
-
-
     }
-
 
     // Recursively index a directory
     static void indexWebPageDirectory(IndexWriter w, File directory) {
@@ -70,7 +70,6 @@ public class Indexer {
                     // Index the path of the file to the document
                     doc.add(new Field("path", path, Field.Store.YES, Field.Index.ANALYZED));
 
-
                     String rawString = fileToString(file);
 
                     // Parse the HTML
@@ -78,26 +77,10 @@ public class Indexer {
 
                     // Get all elements that are of type a and have class "title"
                     // This covers 99% of the headers
-                    Elements headerElements = parsedContent.select("a.title");
-
-//                    Elements headerElements = new Elements();
-//
-//
-//                    if (parsedContent.select("h1").isEmpty()) {
-//                          if (parsedContent.select("h2").isEmpty()) {
-//                              headerElements = parsedContent.select("a.title");
-//                          }
-//                        else {
-//                              headerElements.addAll(parsedContent.select("h2"));
-//                          }
-//                    }
-//                    else {
-//                        headerElements.addAll(parsedContent.select("h1"));
-//                    }
-
+                    Elements headerElements = parsedContent.select("h1");
+                    headerElements.addAll(parsedContent.select("a.title"));
 
                     doc.add(new Field("title", parsedContent.title(), Field.Store.YES, Field.Index.ANALYZED));
-
 
                     Pattern p = Pattern.compile("\\[([^]]+)\\]");
                     Matcher m = p.matcher(parsedContent.title());
@@ -107,7 +90,6 @@ public class Indexer {
                     while(m.find()) {
                         chapter = m.group(1);
                     }
-
 
                     if (!chapter.equals(" ")) {
                         doc.add(new Field("chapter", chapter, Field.Store.YES, Field.Index.ANALYZED));
@@ -120,25 +102,24 @@ public class Indexer {
                             // Don't want empty elements
                             if (!e.text().isEmpty()) {
                                 // Removes the synopsis/description problem
-                                if (e.text().equals("Synopsis") || e.text().equals("Description")) {
-
-                                }
-                                else {
+//                                if (e.text().equals("Synopsis") || e.text().equals("Description") || e.text().equals("Class Summary")){
+//
+//                                } else {
                                     // Index each header into the document
 
                                     Field headerField = new Field("header", e.text(), Field.Store.YES, Field.Index.ANALYZED);
                                     headerField.setBoost(0.5f);
 
                                     doc.add(headerField);
-                                }
+//                                }
                             }
                         }
 
 
                     }
                     // Index the file contents into the document
-                    doc.add(new Field("contents", parsedContent.text(), Field.Store.YES, Field.Index.ANALYZED));
-
+                    //Without Term Vector
+                    doc.add(new TextField("ncontents", parsedContent.text(), Field.Store.YES));
                     w.addDocument(doc);
                 }
             }

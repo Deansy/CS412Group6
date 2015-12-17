@@ -5,17 +5,21 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import javafx.util.Callback;
 import lucene.Searcher;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.store.Directory;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,6 +37,7 @@ public class MainApplication extends Application {
     private ListView resultsPanel = new ListView();
     private TreeView<String> treeView;
     private ResultPage resultPage;
+    private TextField searchBar;
 
     private List<Document> searchResults;
 
@@ -47,7 +52,7 @@ public class MainApplication extends Application {
         primaryStage.setTitle("Java Docs - CS412 Group 6");
 
 
-        TextField searchBar = new TextField();
+        searchBar = new TextField();
         searchBar.setPromptText("Search");
 
         ComboBox filterBar = new ComboBox(filters);
@@ -141,6 +146,12 @@ public class MainApplication extends Application {
         primaryStage.setScene(scene);
         primaryStage.setResizable(false);
         primaryStage.show();
+        primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+            @Override
+            public void handle(WindowEvent event) {
+                onClose(new File("./DATA/"));
+            }
+        });
 
     }
 
@@ -154,7 +165,12 @@ public class MainApplication extends Application {
                         if (newValue != null) {
                             try {
                                 Document d = (Document) newValue;
-                                resultPage.loadPage(new File(d.get("path")), pageId);
+
+
+
+//                                resultPage.loadPageString(d.get("highlighted"), pageId);
+
+                                resultPage.loadPage(new File(d.get("path")), pageId, searchBar.getCharacters().toString());
 
                                 pageId.setText(d.get("path"));
                             } catch (NullPointerException e) {
@@ -215,19 +231,22 @@ public class MainApplication extends Application {
 //                        } else {
 
 //                            System.out.println("Searching for: " + (String)newVal);
-                        resultPage.loadPage(new File((String) newVal), pageId);
 
+                          // What's the purpose of this line??
+//                        resultPage.loadPage(new File((String) newVal), pageId);
+
+                        // Call the search
                         searchResults = Searcher.search((String) newVal, 20, filter);
 
-
+                        // Clear old results
                         results.clear();
 
                         // Hold a list of paths currently in the results
                         // This is to stop duplicates
                         List<String> paths = new ArrayList<String>();
 
-                        // Fill results with test data
-                        for (int i = 1; i < searchResults.size(); i++) {
+                        // Fill results
+                        for (int i = 0; i < searchResults.size()-1; i++) {
                             try {
                                 IndexableField pathField = searchResults.get(i).getField("path");
                                 IndexableField headerField = searchResults.get(i).getField("header");
@@ -255,55 +274,28 @@ public class MainApplication extends Application {
                 });
     }
 
-//    **    THESE COULD BE HELPFUL      **
-//    public void handleSearchByKey(String oldVal, String newVal) {
-//        // If the number of characters in the text box is less than last time
-//        // it must be because the user pressed delete
-//        if ( oldVal != null && (newVal.length() < oldVal.length()) ) {
-//            // Restore the lists original set of entries
-//            // and start from the beginning
-//            resultsPanel.setItems( results );
-//        }
-//
-//        // Change to upper case so that case is not an issue
-//        newVal = newVal.toUpperCase();
-//
-//        // Filter out the entries that don't contain the entered text
-//        ObservableList<String> subentries = FXCollections.observableArrayList();
-//        for ( Object entry: resultsPanel.getItems() ) {
-//            String entryText = (String)entry;
-//            if ( entryText.toUpperCase().contains(newVal) ) {
-//                subentries.add(entryText);
-//            }
-//        }
-//        resultsPanel.setItems(subentries);
-//    }
-//
-//    public void handleSearchByKey2(String oldVal, String newVal) {
-//
-//
-//        // Break out all of the parts of the search text
-//        // by splitting on white space
-//        String[] parts = newVal.toUpperCase().split(" ");
-//
-//        // Filter out the entries that don't contain the entered text
-//        ObservableList<String> subentries = FXCollections.observableArrayList();
-//        for ( Object entry: resultsPanel.getItems() ) {
-//            boolean match = true;
-//            String entryText = (String)entry;
-//            for ( String part: parts ) {
-//                // The entry needs to contain all portions of the
-//                // search string *but* in any order
-//                if ( ! entryText.toUpperCase().contains(part) ) {
-//                    match = false;
-//                    break;
-//                }
-//            }
-//
-//            if ( match ) {
-//                subentries.add(entryText);
-//            }
-//        }
-//        resultsPanel.setItems(subentries);
-//    }
+    private void onClose(File directory) {
+
+            File[] files = directory.listFiles();
+
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    // Recursively index the sub-directory
+                    try {
+                        onClose(new File(file.getCanonicalPath()));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                // Index the file
+                else {
+                    if (file.getName().startsWith("tmp")) {
+                        System.out.println("Deleted - " + file.getName());
+                        file.delete();
+
+                    }
+                }
+            }
+    }
+
 }

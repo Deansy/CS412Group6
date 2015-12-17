@@ -8,9 +8,11 @@ import javafx.geometry.VPos;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Region;
 import javafx.scene.web.WebView;
+import lucene.Searcher;
 
-import java.io.File;
+import java.io.*;
 import java.net.MalformedURLException;
+import java.util.Scanner;
 
 
 class ResultPage extends Region {
@@ -49,15 +51,82 @@ class ResultPage extends Region {
         getChildren().add(browser);
     }
 
-    public void loadPage(File f, TextField pageID) {
+    public void loadPage(File f, TextField pageID, String query) {
         try {
-            browser.getEngine().load(f.toURI().toURL().toString());
+
+            /*
+            Remove caps from being highlighted
+            delete old temp files
+             */
+
+            String nq = "";
+            if (query.startsWith("\"") && query.endsWith("\"")) {
+                // Don't stop and stem a quote
+                nq = query;
+            }
+            else {
+                nq = Searcher.stopAndStem(query);
+            }
+
+            FileInputStream fin=new FileInputStream(f);
+            BufferedReader br=new BufferedReader(new InputStreamReader(fin));
+            String oldHtml = "";
+            String n;
+            while((n=br.readLine())!=null)
+            {
+                oldHtml += n;
+            }
+
+            HighlighterUtil hl = new HighlighterUtil(nq, oldHtml);
+            String newhtmlString = hl.getHighlightedHtml();
+
+            try{
+
+                String absolutePath = f.getAbsolutePath();
+                String filePath = absolutePath.
+                        substring(0,absolutePath.lastIndexOf(File.separator));
+
+                //create a temp file
+                File temp = new File(filePath, "tmp" + f.getName());
+
+                //write it
+                BufferedWriter bw = new BufferedWriter(new FileWriter(temp));
+                bw.write(newhtmlString);
+                bw.close();
+
+                browser.getEngine().load(temp.toURI().toURL().toString());
+
+                System.out.println(temp.getAbsolutePath());
+
+            }catch(IOException e){
+
+                e.printStackTrace();
+
+            }
+
+//            File newHtmlFile = new File(f.toURI())
+
+//            browser.getEngine().loadContent(newhtmlString, "text/html");
+
+//            browser.getEngine().load(f.toURI().toURL().toString());
+
             this.pageID = pageID;
 
         }
         catch (MalformedURLException e) {
             e.printStackTrace();
         }
+        catch (FileNotFoundException e1) {
+        e1.printStackTrace();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void loadPageString(String pageString, TextField pageID) {
+        browser.getEngine().loadContent(pageString, "text/html");
+        this.pageID = pageID;
     }
 
     public void goBack() {

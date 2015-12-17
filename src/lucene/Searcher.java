@@ -1,6 +1,7 @@
 package lucene;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.core.StopAnalyzer;
 import org.apache.lucene.analysis.core.StopFilter;
@@ -10,12 +11,15 @@ import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
+import org.apache.lucene.search.highlight.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.tartarus.snowball.ext.PorterStemmer;
@@ -63,9 +67,7 @@ public class Searcher {
                 newQuery = stopAndStem(query);
             }
 
-
             System.out.println("New Query: " + newQuery);
-
 
             // Don't allow an empty search
             if (newQuery.length() >= 1) {
@@ -73,6 +75,9 @@ public class Searcher {
                 Query q = null;
 
                 try {
+
+                    String indexField = "";
+                    String tvIndexField = "";
 
                     if (filter.equals("All")) {
 
@@ -83,24 +88,25 @@ public class Searcher {
                     else {
 
                         switch (filter) {
-
                             case "Contents":
-                                q = new QueryParser("contents", analyzer).parse(newQuery);
+                                indexField = "ncontents";
+                                tvIndexField = "contents";
                                 break;
                             case "Headers":
-                                q = new QueryParser("header", analyzer).parse(newQuery);
+                                indexField = "header";
                                 break;
                             case "Chapter":
-                                q = new QueryParser("chapter", analyzer).parse(newQuery);
+                                indexField = "chapter";
                                 break;
                             default:
                                 // Default to searching contents
                                 System.err.println("default searching");
-                                q = new QueryParser("contents", analyzer).parse(newQuery);
+                                indexField = "ncontents";
                                 break;
                         }
-                    }
 
+                        q = new QueryParser(indexField, analyzer).parse(newQuery);
+                    }
 
                     IndexReader reader = DirectoryReader.open(index);
                     IndexSearcher searcher = new IndexSearcher(reader);
@@ -110,24 +116,24 @@ public class Searcher {
                     searcher.search(q, collector);
 
                     ScoreDoc[] hits = collector.topDocs().scoreDocs;
-
                     List<Document> results = new ArrayList<>();
 
                     System.out.println("Found " + hits.length + " hits.\n");
                     if (hits.length > 0) {
                         System.out.println("Highest score = " + hits[0].score);
                     }
-                    for (int i = 0; i < hits.length; ++i) {
-                        int docId = hits[i].doc;
-                        Document d = searcher.doc(docId);
+
+                    for (int i = 0; i < hits.length; i++) {
+
+                        Document d = searcher.doc(hits[i].doc);
 
                         results.add(d);
 
                     }
+
                     return results;
                 } catch (ParseException e) {
                     System.out.println("Don't have enough search parameters");
-
                 }
             }
         } catch (Exception e) {
@@ -137,7 +143,7 @@ public class Searcher {
         return new ArrayList<>();
     }
 
-    private static String stopAndStem(String q) {
+    public static String stopAndStem(String q) {
         Tokenizer tokenizer = new StandardTokenizer();
         StringBuilder sb = new StringBuilder();
         try {
