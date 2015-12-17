@@ -17,11 +17,15 @@ import javafx.util.Callback;
 import lucene.Indexer;
 import lucene.Searcher;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +44,6 @@ public class MainApplication extends Application {
     private TreeView<String> treeView;
     private ResultPage resultPage;
     private TextField searchBar;
-
     private List<Document> searchResults;
 
     TextField pageId;
@@ -64,7 +67,7 @@ public class MainApplication extends Application {
     }
 
     @Override
-    public void start(Stage primaryStage) {
+    public void start(Stage primaryStage) throws IOException {
         primaryStage.setTitle("Java Docs - CS412 Group 6");
 
 
@@ -116,13 +119,33 @@ public class MainApplication extends Application {
         // Browser
         VBox browsePane = new VBox();
 
-
         // Set up browser to show java doc contents
-        /* MISSING CODE */
-        treeView = new TreeView<>();
+        TreeItem<File> root = createNode(new File(System.getProperty("user.dir") + "/DATA/java/"));
+        TreeItem<String> rootName = new TreeItem<>(root.getValue().getName());
+        TreeView treeView = new TreeView<File>(root);
         browsePane.getChildren().add(treeView);
-        VBox.setVgrow(treeView, Priority.ALWAYS);
 
+        // Stuff for trying to do TreeView using the indexed files
+        String indexDir = "./index";
+        Directory index = null;
+        try {
+            index = FSDirectory.open(Paths.get(indexDir));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        List<String> paths = new ArrayList<>();
+        IndexReader reader = null;
+        try {
+            reader = DirectoryReader.open(index);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // Retrieve every indexed files path
+        for (int i=0; i<reader.maxDoc(); i++) {
+            Document doc = reader.document(i);
+            String docId = doc.get("path");
+            paths.add(docId);
+        }
 
         // Search and Results
         VBox searchPane = new VBox();
@@ -317,6 +340,55 @@ public class MainApplication extends Application {
                     }
                 }
             }
+    }
+
+    //Oracle treeView example code
+    private TreeItem<File> createNode(final File f) {
+        return new TreeItem<File>(f) {
+            protected boolean isLeaf;
+            private boolean isFirstTimeChildren = true;
+            private boolean isFirstTimeLeaf = true;
+
+            @Override
+            public ObservableList<TreeItem<File>> getChildren() {
+                if (isFirstTimeChildren) {
+                    isFirstTimeChildren = false;
+                    super.getChildren().setAll(buildChildren(this));
+                }
+                return super.getChildren();
+            }
+
+            @Override
+            public boolean isLeaf() {
+                if (isFirstTimeLeaf) {
+                    isFirstTimeLeaf = false;
+                    File f = (File) getValue();
+                    isLeaf = f.isFile();
+                }
+                return isLeaf;
+            }
+
+            private ObservableList<TreeItem<File>> buildChildren(
+                    TreeItem<File> TreeItem) {
+                File f = TreeItem.getValue();
+                if (f == null) {
+                    return FXCollections.emptyObservableList();
+                }
+                if (f.isFile()) {
+                    return FXCollections.emptyObservableList();
+                }
+                File[] files = f.listFiles();
+                if (files != null) {
+                    ObservableList<TreeItem<File>> children = FXCollections
+                            .observableArrayList();
+                    for (File childFile : files) {
+                        children.add(createNode(childFile));
+                    }
+                    return children;
+                }
+                return FXCollections.emptyObservableList();
+            }
+        };
     }
 
 }
