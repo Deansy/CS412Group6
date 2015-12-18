@@ -55,11 +55,10 @@ class ResultPage extends Region {
         try {
 
             /*
-            Remove caps from being highlighted
-            delete old temp files
+            TODO Remove caps from being highlighted
              */
 
-            String nq = "";
+            String nq;
             if (query.startsWith("\"") && query.endsWith("\"")) {
                 // Don't stop and stem a quote
                 nq = query;
@@ -103,12 +102,6 @@ class ResultPage extends Region {
                 e.printStackTrace();
 
             }
-
-//            File newHtmlFile = new File(f.toURI())
-
-//            browser.getEngine().loadContent(newhtmlString, "text/html");
-
-//            browser.getEngine().load(f.toURI().toURL().toString());
 
             this.pageID = pageID;
 

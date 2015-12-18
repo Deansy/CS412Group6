@@ -16,17 +16,27 @@ import javafx.stage.WindowEvent;
 import javafx.util.Callback;
 import lucene.Indexer;
 import lucene.Searcher;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 
@@ -41,10 +51,15 @@ public class MainApplication extends Application {
     private String filter = filters.get(0);
     private ObservableList<Document> results = FXCollections.observableArrayList();
     private ListView resultsPanel = new ListView();
-    private TreeView<String> treeView;
     private ResultPage resultPage;
     private TextField searchBar;
     private List<Document> searchResults;
+
+    private TreeView<File> treeView;
+    private TreeItem<File> root;
+
+    private HashMap<String, String> pathHeaders;
+
 
     TextField pageId;
 
@@ -119,33 +134,15 @@ public class MainApplication extends Application {
         // Browser
         VBox browsePane = new VBox();
 
+
+
         // Set up browser to show java doc contents
-        TreeItem<File> root = createNode(new File(System.getProperty("user.dir") + "/DATA/java/"));
-        TreeItem<String> rootName = new TreeItem<>(root.getValue().getName());
-        TreeView treeView = new TreeView<File>(root);
+        root = createNode(new File(System.getProperty("user.dir") + "/DATA/java/"));
+        treeView = new TreeView<File>(root);
         browsePane.getChildren().add(treeView);
 
-        // Stuff for trying to do TreeView using the indexed files
-        String indexDir = "./index";
-        Directory index = null;
-        try {
-            index = FSDirectory.open(Paths.get(indexDir));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        List<String> paths = new ArrayList<>();
-        IndexReader reader = null;
-        try {
-            reader = DirectoryReader.open(index);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        // Retrieve every indexed files path
-        for (int i=0; i<reader.maxDoc(); i++) {
-            Document doc = reader.document(i);
-            String docId = doc.get("path");
-            paths.add(docId);
-        }
+        initializeBrowser();
+
 
         // Search and Results
         VBox searchPane = new VBox();
@@ -194,6 +191,116 @@ public class MainApplication extends Application {
 
     }
 
+
+    private void initializeBrowser() {
+        treeView.setCellFactory(tv ->  {
+            final Tooltip tooltip = new Tooltip();
+            TreeCell<File> cell = new TreeCell<File>() {
+                @Override
+                public void updateItem(File item, boolean empty) {
+
+                    super.updateItem(item, empty);
+                    if (empty) {
+                        setText(null);
+                        setTooltip(null);
+                    } else if (getTreeItem() == root) {
+                        setText("Java Reference Library");
+                        setTooltip(null);
+                    } else {
+                        String header = getHeaderForPath(item.getAbsolutePath().toString());
+                        if (header != null) {
+                            setText(header);
+                        } else {
+                            String name = item.getName();
+
+                            switch(name) {
+                                case "awt" :
+                                    setText("Java AWT Reference");
+                                    break;
+                                case "exp" :
+                                    setText("Exploring Java");
+                                    break;
+                                case "fclass" :
+                                    setText("Java Fundamental Classes Reference");
+                                    break;
+                                case "index" :
+                                    setText("Combined Index");
+                                    break;
+                                case "javanut" :
+                                    setText("Java in a Nutshell");
+                                    break;
+                                case "langref" :
+                                    setText("Java Language Reference");
+                                    break;
+                                case "gifs" :
+                                    setText("Images");
+                                    break;
+                                default :
+                                    setText(item.getName());
+                                    break;
+                            }
+                        }
+                        tooltip.setText(item.getAbsolutePath().toString());
+
+                        setTooltip(tooltip);
+                    }
+                }
+            };
+            cell.setOnMouseClicked(e -> {
+                if (e.getClickCount() == 2 && ! cell.isEmpty()) {
+                    File file = cell.getItem();
+                    // Stops an exception when changing search types
+                    if (file != null) {
+
+                            resultPage.loadPage(file, pageId, searchBar.getCharacters().toString());
+
+                            pageId.setText(file.getAbsolutePath());
+
+                    }
+                    else {
+                        // Do nothing
+                        System.out.println("XX");
+                    }
+                }
+            });
+            return cell ;
+        });
+    }
+
+    private String getHeaderForPath(String path) {
+
+        // Stuff for trying to do TreeView using the indexed files
+        String indexDir = "./index";
+
+        try {
+            Analyzer analyzer = new StandardAnalyzer();
+            Directory index = FSDirectory.open(Paths.get(indexDir));
+            IndexReader reader = DirectoryReader.open(index);
+            IndexSearcher searcher = new IndexSearcher(reader);
+            TopScoreDocCollector collector = TopScoreDocCollector.create(1);
+            QueryParser qp = new QueryParser("path", analyzer);
+            path = qp.escape(path);
+
+            Query q = qp.parse(path);
+
+            searcher.search(q, collector);
+
+            ScoreDoc[] hits = collector.topDocs().scoreDocs;
+
+            for (int i = 0; i < hits.length; i++) {
+                Document d = searcher.doc(hits[i].doc);
+                String header = d.get("header");
+                if (header != null && !header.equals(""))
+                    return d.get("header");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     private void setSelectedItemListener() {
         // Clicked on a new item in search results
         resultsPanel.getSelectionModel().selectedItemProperty()
@@ -204,10 +311,6 @@ public class MainApplication extends Application {
                         if (newValue != null) {
                             try {
                                 Document d = (Document) newValue;
-
-
-
-//                                resultPage.loadPageString(d.get("highlighted"), pageId);
 
                                 resultPage.loadPage(new File(d.get("path")), pageId, searchBar.getCharacters().toString());
 

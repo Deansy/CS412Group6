@@ -75,7 +75,6 @@ public class Searcher {
                 try {
 
                     String indexField = "";
-                    String tvIndexField = "";
 
                     if (filter.equals("All")) {
 
@@ -88,7 +87,6 @@ public class Searcher {
                         switch (filter) {
                             case "Contents":
                                 indexField = "ncontents";
-                                tvIndexField = "contents";
                                 break;
                             case "Headers":
                                 indexField = "header";
