@@ -12,8 +12,6 @@ import lucene.Searcher;
 
 import java.io.*;
 import java.net.MalformedURLException;
-import java.util.Scanner;
-
 
 class ResultPage extends Region {
 
@@ -54,10 +52,6 @@ class ResultPage extends Region {
     public void loadPage(File f, TextField pageID, String query) {
         try {
 
-            /*
-            TODO Remove caps from being highlighted
-             */
-
             String nq;
             if (query.startsWith("\"") && query.endsWith("\"")) {
                 // Don't stop and stem a quote
@@ -65,6 +59,22 @@ class ResultPage extends Region {
             }
             else {
                 nq = Searcher.stopAndStem(query);
+            }
+
+            String[] arr = nq.split(" ");
+            nq = "";
+
+            // Recreate the query string without uppercase words
+            // To stop booleans being highlighted
+            for (String ss : arr) {
+                char start = ss.charAt(0);
+                char end = ss.charAt(ss.length()-1);
+                if(!Character.isUpperCase(start) && !Character.isUpperCase(end)) {
+                    if (!nq.equals("")) {
+                        nq += " ";
+                    }
+                    nq += ss;
+                }
             }
 
             FileInputStream fin=new FileInputStream(f);

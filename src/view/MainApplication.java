@@ -60,7 +60,6 @@ public class MainApplication extends Application {
 
     private HashMap<String, String> pathHeaders;
 
-
     TextField pageId;
 
     public static void main(String[] args) {
@@ -74,7 +73,6 @@ public class MainApplication extends Application {
             if (!index.exists()) {
                 Indexer.main(args);
             }
-
             launch(args);
         } else {
             System.out.println("Need a DATA folder to index...");
@@ -84,7 +82,6 @@ public class MainApplication extends Application {
     @Override
     public void start(Stage primaryStage) throws IOException {
         primaryStage.setTitle("Java Docs - CS412 Group 6");
-
 
         searchBar = new TextField();
         searchBar.setPromptText("Search");
@@ -105,12 +102,10 @@ public class MainApplication extends Application {
         setCellFactory();
         setSelectedItemListener();
 
-
         // Set up results panel
         resultsPanel.setMinHeight(620);
 
-        resultsPanel.setItems( results );
-
+        resultsPanel.setItems(results);
 
         pageId = new TextField();
         pageId.setMinWidth(1195);
@@ -134,15 +129,11 @@ public class MainApplication extends Application {
         // Browser
         VBox browsePane = new VBox();
 
-
-
         // Set up browser to show java doc contents
         root = createNode(new File(System.getProperty("user.dir") + "/DATA/java/"));
         treeView = new TreeView<File>(root);
         browsePane.getChildren().add(treeView);
-
         initializeBrowser();
-
 
         // Search and Results
         VBox searchPane = new VBox();
@@ -169,7 +160,6 @@ public class MainApplication extends Application {
         Button forwardBtn = new Button("\u21e8");
         forwardBtn.setOnAction(e -> resultPage.goForward());
 
-
         navBar.getChildren().addAll(backBtn, forwardBtn, pageId);
 
         mainLayout.setTop(navBar);
@@ -178,22 +168,15 @@ public class MainApplication extends Application {
 
         Scene scene = new Scene(mainLayout, 1280, 768);
 
-
         primaryStage.setScene(scene);
         primaryStage.setResizable(false);
         primaryStage.show();
-        primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
-            @Override
-            public void handle(WindowEvent event) {
-                onClose(new File("./DATA/"));
-            }
-        });
+        primaryStage.setOnCloseRequest(event -> onClose(new File("./DATA/")));
 
     }
 
-
     private void initializeBrowser() {
-        treeView.setCellFactory(tv ->  {
+        treeView.setCellFactory(tv -> {
             final Tooltip tooltip = new Tooltip();
             TreeCell<File> cell = new TreeCell<File>() {
                 @Override
@@ -213,29 +196,29 @@ public class MainApplication extends Application {
                         } else {
                             String name = item.getName();
 
-                            switch(name) {
-                                case "awt" :
+                            switch (name) {
+                                case "awt":
                                     setText("Java AWT Reference");
                                     break;
-                                case "exp" :
+                                case "exp":
                                     setText("Exploring Java");
                                     break;
-                                case "fclass" :
+                                case "fclass":
                                     setText("Java Fundamental Classes Reference");
                                     break;
-                                case "index" :
+                                case "index":
                                     setText("Combined Index");
                                     break;
-                                case "javanut" :
+                                case "javanut":
                                     setText("Java in a Nutshell");
                                     break;
-                                case "langref" :
+                                case "langref":
                                     setText("Java Language Reference");
                                     break;
-                                case "gifs" :
+                                case "gifs":
                                     setText("Images");
                                     break;
-                                default :
+                                default:
                                     setText(item.getName());
                                     break;
                             }
@@ -247,29 +230,24 @@ public class MainApplication extends Application {
                 }
             };
             cell.setOnMouseClicked(e -> {
-                if (e.getClickCount() == 2 && ! cell.isEmpty()) {
+                if (e.getClickCount() == 2 && !cell.isEmpty()) {
                     File file = cell.getItem();
                     // Stops an exception when changing search types
                     if (file != null) {
-
-                            resultPage.loadPage(file, pageId, searchBar.getCharacters().toString());
-
-                            pageId.setText(file.getAbsolutePath());
-
-                    }
-                    else {
+                        resultPage.loadPage(file, pageId, searchBar.getCharacters().toString());
+                        pageId.setText(file.getAbsolutePath());
+                    } else {
                         // Do nothing
                         System.out.println("XX");
                     }
                 }
             });
-            return cell ;
+            return cell;
         });
     }
 
     private String getHeaderForPath(String path) {
 
-        // Stuff for trying to do TreeView using the indexed files
         String indexDir = "./index";
 
         try {
@@ -282,9 +260,7 @@ public class MainApplication extends Application {
             path = qp.escape(path);
 
             Query q = qp.parse(path);
-
             searcher.search(q, collector);
-
             ScoreDoc[] hits = collector.topDocs().scoreDocs;
 
             for (int i = 0; i < hits.length; i++) {
@@ -311,15 +287,12 @@ public class MainApplication extends Application {
                         if (newValue != null) {
                             try {
                                 Document d = (Document) newValue;
-
                                 resultPage.loadPage(new File(d.get("path")), pageId, searchBar.getCharacters().toString());
-
                                 pageId.setText(d.get("path"));
                             } catch (NullPointerException e) {
                                 e.printStackTrace();
                             }
-                        }
-                        else {
+                        } else {
                             // Do nothing
                             System.out.println("XX");
                         }
@@ -344,12 +317,10 @@ public class MainApplication extends Application {
                                     if (filter.equals("Chapter")) {
                                         leadLbl.setText("[" + item.get("chapter") + "]" + item.get("header"));
                                         setText("(" + item.get("chapter") + ")" + item.get("header"));
-                                    }
-                                    else if (filter.equals("Headers")) {
+                                    } else if (filter.equals("Headers")) {
                                         leadLbl.setText(item.get("header"));
                                         setText(item.get("header"));
-                                    }
-                                    else {
+                                    } else {
                                         leadLbl.setText(item.get("title"));
                                         setText(item.get("title"));
                                     }
@@ -368,15 +339,6 @@ public class MainApplication extends Application {
                 new ChangeListener() {
                     public void changed(ObservableValue observable, Object oldVal, Object newVal) {
 
-//                        if ( oldVal != null && (((String) newVal).length() < ((String) oldVal).length()) ) {
-//                            System.out.println("Deleting - Just do previous search");
-//                        } else {
-
-//                            System.out.println("Searching for: " + (String)newVal);
-
-                          // What's the purpose of this line??
-//                        resultPage.loadPage(new File((String) newVal), pageId);
-
                         // Call the search
                         searchResults = Searcher.search((String) newVal, 1000, filter);
 
@@ -394,10 +356,6 @@ public class MainApplication extends Application {
                                 IndexableField pathField = searchResults.get(i).getField("path");
                                 IndexableField headerField = searchResults.get(i).getField("header");
 
-//                                System.out.println(pathField.stringValue());
-
-
-
                                 // Don't add duplicates
                                 if (!paths.contains(pathField.stringValue())) {
                                     paths.add(pathField.stringValue());
@@ -409,40 +367,38 @@ public class MainApplication extends Application {
                                         results.add(searchResults.get(i));
                                     }
                                 }
-                            }
-                            catch (Exception e) {
+                            } catch (Exception e) {
                                 e.printStackTrace();
                             }
                         }
                         resultsPanel.setItems(results);
 
                     }
-//                    }
                 });
     }
 
     private void onClose(File directory) {
 
-            File[] files = directory.listFiles();
+        File[] files = directory.listFiles();
 
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    // Recursively index the sub-directory
-                    try {
-                        onClose(new File(file.getCanonicalPath()));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                // Index the file
-                else {
-                    if (file.getName().startsWith("tmp")) {
-                        System.out.println("Deleted - " + file.getName());
-                        file.delete();
-
-                    }
+        for (File file : files) {
+            if (file.isDirectory()) {
+                // Recursively index the sub-directory
+                try {
+                    onClose(new File(file.getCanonicalPath()));
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
+            // Index the file
+            else {
+                if (file.getName().startsWith("tmp")) {
+                    System.out.println("Deleted - " + file.getName());
+                    file.delete();
+
+                }
+            }
+        }
     }
 
     //Oracle treeView example code

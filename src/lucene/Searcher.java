@@ -122,7 +122,6 @@ public class Searcher {
                     for (int i = 0; i < hits.length; i++) {
 
                         Document d = searcher.doc(hits[i].doc);
-                        System.out.println("Document d ID: " + d);
                         results.add(d);
 
                     }
