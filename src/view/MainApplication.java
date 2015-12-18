@@ -46,8 +46,8 @@ import java.util.List;
 
 public class MainApplication extends Application {
 
-    private ObservableList<String> filters = FXCollections.observableArrayList("Contents",
-            "Headers", "Chapter", "All");
+    private ObservableList<String> filters = FXCollections.observableArrayList("All", "Contents",
+            "Headers", "Chapter");
     private String filter = filters.get(0);
     private ObservableList<Document> results = FXCollections.observableArrayList();
     private ListView resultsPanel = new ListView();
@@ -129,6 +129,7 @@ public class MainApplication extends Application {
         // Browser
         VBox browsePane = new VBox();
 
+
         // Set up browser to show java doc contents
         root = createNode(new File(System.getProperty("user.dir") + "/DATA/java/"));
         treeView = new TreeView<File>(root);
@@ -139,6 +140,7 @@ public class MainApplication extends Application {
         VBox searchPane = new VBox();
         searchPane.setPadding(new Insets(5, 0, 0, 0));
         searchPane.setSpacing(2);
+
         searchPane.getChildren().addAll(filterBar, searchBar, resultsPanel);
         searchTab.setContent(searchPane);
         browseTab.setContent(browsePane);
